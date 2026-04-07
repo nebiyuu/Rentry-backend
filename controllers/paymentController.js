@@ -169,7 +169,7 @@ export const initiatePayment = async (req, res) => {
       });
       
 
-      //save it t
+      //save it to db
       if (!chapaResult.success) {
         console.log("❌ Failed to create Chapa subaccount:", chapaResult.error);
         await t.rollback();

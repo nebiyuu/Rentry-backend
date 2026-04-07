@@ -11,7 +11,7 @@ import rentRoutes from "./routes/rentRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 import paymentRoutes from "./routes/paymentRouter.js";
 import returnRoutes from "./routes/returnRoutes.js";
-import rentalOrderRoutes from "./routes/rentalOrderRoutes.js";
+//import rentalOrderRoutes from "./routes/rentalOrderRoutes.js";
 
 
 dotenv.config();
@@ -26,7 +26,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/products", trailRoutes);
 app.use("/api/rentals", rentRoutes);
-app.use("/api/rental-orders", rentalOrderRoutes);
+//app.use("/api/rental-orders", rentalOrderRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/returns", returnRoutes);

@@ -1,52 +1,28 @@
 import { Router } from "express";
-import rentalOrderController from "../controllers/rentalOrderController.js";
 import { requireAuth } from "../middlewares/auth.js";
-import { 
-  createRentalOrderValidation, 
-  updateRentalOrderValidation 
-} from "../middlewares/validators/rentalOrderValidator.js";
-
+import {
+  createRentalOrder,
+  getRentalOrder,
+  getUserRentals,
+  returnRental,
+  cancelRental
+} from '../controllers/rentalOrderController.js';
+import { RentalOrder, Product, User } from '../models/index.js';
 const router = Router();
 
-// All routes require authentication
-router.use(requireAuth);
+// POST /api/rentals - Create rental order
+router.post('/', requireAuth, createRentalOrder);
 
-// Create a new rental order
-router.post(
-  "/",
-  createRentalOrderValidation,
-  rentalOrderController.createRentalOrder
-);
+// GET /api/rentals - Get user's rentals
+router.get('/', requireAuth, getUserRentals);
 
-// Get all rental orders (with filtering) - Admin only or for own products
-router.get(
-  "/",
-  rentalOrderController.getRentalOrders
-);
+// GET /api/rentals/:orderId - Get specific rental
+router.get('/:orderId', requireAuth, getRentalOrder);
 
-// Get current user's rental orders
-router.get(
-  "/my-orders",
-  rentalOrderController.getUserRentalOrders
-);
+// PUT /api/rentals/:orderId/return - Return rental
+router.put('/:orderId/return', requireAuth, returnRental);
 
-// Get rental order by ID
-router.get(
-  "/:id",
-  rentalOrderController.getRentalOrderById
-);
-
-// Update rental order
-router.patch(
-  "/:id",
-  updateRentalOrderValidation,
-  rentalOrderController.updateRentalOrder
-);
-
-// Delete rental order
-router.delete(
-  "/:id",
-  rentalOrderController.deleteRentalOrder
-);
+// PUT /api/rentals/:orderId/cancel - Cancel rental
+router.put('/:orderId/cancel', requireAuth, cancelRental);
 
 export default router;

@@ -167,11 +167,45 @@ const getProduct = async (req, res) => {
     const trialPolicy = await getActiveTrialPolicyForProduct(id);
 
     console.log(trialPolicy);
+
+    // Call product recommendation API in microservice
+    let recommendedProducts = [];
+    try {
+      const microserviceUrl = process.env.MICROSERVICE_URL || 'http://localhost:8000';
+      const recommendEndpoint = `${microserviceUrl}/recommend/${id}`;
+      
+      console.log(`Calling recommendation API: ${recommendEndpoint}`);
+      
+      const response = await fetch(recommendEndpoint);
+      
+      if (!response.ok) {
+        throw new Error(`Microservice responded with status: ${response.status}`);
+      }
+      
+      const recommendData = await response.json();
+      console.log('Recommendation API response:', recommendData);
+      
+      if (recommendData.status === 'success' && recommendData.recommended_ids.length > 0) {
+        // Fetch the recommended products from database
+        recommendedProducts = await Product.findAll({
+          where: {
+            id: recommendData.recommended_ids
+          },
+          paranoid: !(req.user?.role === 'admin')
+        });
+      }
+      
+    } catch (microserviceError) {
+      console.warn('Recommendation API call failed:', microserviceError.message);
+      // Continue without recommendations if API fails
+    }
+
     return res.status(200).json({
       success: true,
       data: {
         ...product.toJSON(),
-        trialPolicy
+        trialPolicy,
+        recommendedProducts: recommendedProducts.map(p => p.toJSON())
       }
     });
   } catch (error) {

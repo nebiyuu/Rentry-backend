@@ -19,7 +19,6 @@ router.get("/:id", rentController.getRentable);
 router.post(
   "/", 
   requireAuth,
-  createRentableValidation,
   uploadProduct.array("images", 10),
   rentController.createRentalProduct
 );
