@@ -7,6 +7,7 @@ A lightweight Node.js / Express backend for an e-commerce-style application supp
 - Image upload and storage using Cloudinary
 - Input validation and authentication middleware (JWT)
 - Database models defined with Sequelize for PostgreSQL
+- **Payment Gateway:** Chapa integration with subaccount management and split payments
 - **AI Microservice:** Smart pricing, product recommendations, and image quality validation
 
 ## AI Microservice
@@ -32,6 +33,27 @@ pip install -r requirements.txt
 python main.py
 ```
 Visit `http://localhost:8000/docs` for interactive API documentation.
+
+## Payment Gateway
+
+The application integrates with **Chapa** for secure payment processing:
+
+### 💳 Payment Features
+- **Secure Checkout:** Chapa-hosted payment pages for PCI compliance
+- **Subaccount Management:** Automatic subaccount creation for sellers with Tellbirr integration
+- **Split Payments:** Commission-based revenue sharing between platform and sellers
+- **Multiple Payment Methods:** Support for various Ethiopian payment methods
+
+### 🛠️ Integration Details
+- **Provider:** Chapa (Ethiopian payment gateway)
+- **Subaccount Split:** 5% platform commission (configurable)
+- **Bank Integration:** Tellbirr
+- **Webhook Support:** Real-time payment status updates
+
+### 🔧 Configuration
+Required environment variables:
+- `CHAPA_SECRET_KEY` — Your Chapa API secret key
+- Payment webhook URLs configured for transaction updates
 
 ## Requirements
 - Node.js (v14+ recommended)
@@ -96,6 +118,6 @@ There are sample tests under the `test/` folder.
 ## Status
 - In progress: core API, models, and upload flows are implemented.
 - **Completed:** AI microservice with smart pricing, product recommendations, and image validation
-- Planned: integrate Chapa payment gateway for checkout and payments.
+- **Completed:** Chapa payment gateway integration for checkout and payments
 
  
