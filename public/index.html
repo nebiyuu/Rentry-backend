@@ -140,6 +140,7 @@
       <li>404: <code>{ "success": false, "message": "Product not found" }</code></li>
       <li>500: <code>{ "success": false, "message": "Error retrieving product", "error": "..." }</code></li>
     </ul>
+    <div class="note">If the recommendation microservice is unavailable, the endpoint will still return the product data without recommendations. Check browser console for recommendation API warnings.</div>
   </div>
 
   <div class="endpoint">
@@ -170,6 +171,13 @@
     <ul>
       <li>201: <code>{ "success": true, "data": Product }</code></li>
       <li>400: <code>{ "success": false, "message": "Validation error", "errors": [...] }</code></li>
+      <li>400: <code>{ "success": false, "message": "Image validation failed for &lt;filename&gt;", "reason": "Image is too light", "score": number }</code></li>
+      <li>400: <code>{ "success": false, "message": "Image validation failed for &lt;filename&gt;", "reason": "Image is too blurry", "score": number }</code></li>
+      <li>400: <code>{ "success": false, "message": "Image validation failed for &lt;filename&gt;", "reason": "Image is too dark", "score": number }</code></li>
+      <li>400: <code>{ "success": false, "message": "Image validation failed for &lt;filename&gt;", "reason": "Image file not found at this path", "score": number }</code></li>
+      <li>400: <code>{ "success": false, "message": "Image validation failed for &lt;filename&gt;", "reason": "System error: &lt;error_message&gt;", "score": number }</code></li>
+      <li>400: <code>{ "success": false, "message": "Error validating image &lt;filename&gt;", "error": "..." }</code></li>
+      <li>400: <code>{ "success": false, "message": "Image validation process failed", "error": "..." }</code></li>
       <li>401: <code>{ "success": false, "message": "Unauthorized" }</code></li>
       <li>403: <code>{ "success": false, "message": "Only sellers and admins can create products" }</code></li>
       <li>500: <code>{ "success": false, "message": "Error creating product", "error": "..." }</code></li>
@@ -204,6 +212,13 @@
     <ul>
       <li>200: <code>{ "success": true, "data": { product: UpdatedProduct, trialPolicy: TrialPolicy | null } }</code></li>
       <li>400: <code>{ "success": false, "message": "Validation error", "errors": [...] }</code></li>
+      <li>400: <code>{ "success": false, "message": "Image validation failed for &lt;filename&gt;", "reason": "Image is too light", "score": number }</code></li>
+      <li>400: <code>{ "success": false, "message": "Image validation failed for &lt;filename&gt;", "reason": "Image is too blurry", "score": number }</code></li>
+      <li>400: <code>{ "success": false, "message": "Image validation failed for &lt;filename&gt;", "reason": "Image is too dark", "score": number }</code></li>
+      <li>400: <code>{ "success": false, "message": "Image validation failed for &lt;filename&gt;", "reason": "Image file not found at this path", "score": number }</code></li>
+      <li>400: <code>{ "success": false, "message": "Image validation failed for &lt;filename&gt;", "reason": "System error: &lt;error_message&gt;", "score": number }</code></li>
+      <li>400: <code>{ "success": false, "message": "Error validating image &lt;filename&gt;", "error": "..." }</code></li>
+      <li>400: <code>{ "success": false, "message": "Image validation process failed", "error": "..." }</code></li>
       <li>401: <code>{ "success": false, "message": "Unauthorized" }</code></li>
       <li>403: <code>{ "success": false, "message": "Not authorized to update this product" }</code></li>
       <li>404: <code>{ "success": false, "message": "Product not found" }</code></li>

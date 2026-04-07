@@ -4,6 +4,8 @@ import Product from "../model/product.js";
 import User from "../model/user.js";
 import TrailPolicy from "../model/trailPolicies.js";
 import Rentable from "../model/rentable.js";
+import cloudinary from "../config/cloudinary.js";
+import fs from 'fs';
 
 // Helper function to check product access
 const checkProductAccess = (product, userId, role) => {
@@ -17,6 +19,33 @@ const getActiveTrialPolicyForProduct = async (productId) => {
   return TrailPolicy.findOne({
     where: { product_id: productId}
   });
+};
+
+// Helper function to upload validated images to Cloudinary
+const uploadValidatedImages = async (files) => {
+  const uploadPromises = files.map(async (file) => {
+    try {
+      const result = await cloudinary.uploader.upload(file.path, {
+        folder: 'products',
+        resource_type: 'image',
+      });
+      
+      // Clean up temporary file after successful upload
+      if (fs.existsSync(file.path)) {
+        fs.unlinkSync(file.path);
+      }
+      
+      return result.secure_url;
+    } catch (error) {
+      // Clean up temporary file even if upload fails
+      if (fs.existsSync(file.path)) {
+        fs.unlinkSync(file.path);
+      }
+      throw new Error(`Failed to upload ${file.originalname}: ${error.message}`);
+    }
+  });
+  
+  return Promise.all(uploadPromises);
 };
 const getActiveRentalProductForProduct = async (productId) => {
   
@@ -222,6 +251,14 @@ const getProduct = async (req, res) => {
 const createProduct = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
+    // Clean up temporary files if validation fails
+    if (req.files && Array.isArray(req.files) && req.files.length > 0) {
+      req.files.forEach(file => {
+        if (fs.existsSync(file.path)) {
+          fs.unlinkSync(file.path);
+        }
+      });
+    }
     return res.status(400).json({ 
       success: false, 
       errors: errors.array() 
@@ -231,10 +268,18 @@ const createProduct = async (req, res) => {
   try {
     const { name, description, category, condition, price, trialPolicy } = req.body;
 
-    // If files were uploaded, map their Cloudinary URLs into the images array
+    // Upload validated images to Cloudinary
     let images = [];
     if (req.files && Array.isArray(req.files) && req.files.length > 0) {
-      images = req.files.map((file) => file.path);
+      try {
+        images = await uploadValidatedImages(req.files);
+      } catch (uploadError) {
+        return res.status(500).json({
+          success: false,
+          message: 'Error uploading images to Cloudinary',
+          error: uploadError.message
+        });
+      }
     } else if (req.body.images) {
       // Fallback: allow images to be passed as JSON array in body (for backward compatibility)
       images = Array.isArray(req.body.images) ? req.body.images : [];
@@ -331,6 +376,14 @@ const createProduct = async (req, res) => {
 const updateProduct = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
+    // Clean up temporary files if validation fails
+    if (req.files && Array.isArray(req.files) && req.files.length > 0) {
+      req.files.forEach(file => {
+        if (fs.existsSync(file.path)) {
+          fs.unlinkSync(file.path);
+        }
+      });
+    }
     return res.status(400).json({ 
       success: false, 
       errors: errors.array() 
@@ -368,7 +421,15 @@ const updateProduct = async (req, res) => {
     // Determine images for update: use uploaded files if provided; otherwise fall back to body or existing
     let images = product.images;
     if (req.files && Array.isArray(req.files) && req.files.length > 0) {
-      images = req.files.map((file) => file.path);
+      try {
+        images = await uploadValidatedImages(req.files);
+      } catch (uploadError) {
+        return res.status(500).json({
+          success: false,
+          message: 'Error uploading images to Cloudinary',
+          error: uploadError.message
+        });
+      }
     } else if (req.body.images) {
       images = Array.isArray(req.body.images) ? req.body.images : product.images;
     }

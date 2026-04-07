@@ -5,7 +5,8 @@ import {
   createProductValidation, 
   updateProductValidation 
 } from "../middlewares/validators/productValidator.js";
-import { uploadProduct } from "../config/upload.js";
+import { uploadProduct, uploadTemp } from "../config/upload.js";
+import { validateImages } from "../middlewares/imageValidator.js";
 
 const router = Router();
 
@@ -19,7 +20,8 @@ router.get("/:id", productController.getProduct);
 router.post(
   "/", 
   requireAuth,
-  uploadProduct.array("images", 10),
+  uploadTemp.array("images", 10),
+  validateImages,
   createProductValidation, 
   productController.createProduct
 );
@@ -28,7 +30,8 @@ router.post(
 router.patch(
   "/:id",
   requireAuth,
-  uploadProduct.array("images", 10),
+  uploadTemp.array("images", 10),
+  validateImages,
   updateProductValidation,
   productController.updateProduct
 );

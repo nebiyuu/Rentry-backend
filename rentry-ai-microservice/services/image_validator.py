@@ -23,7 +23,7 @@ def validate_image_quality(image_path):
         # Logic Gates
         # is_blurry = blur_score < 100
         # Changed this from 100 to 300 to be more strict
-        is_blurry = blur_score < 300
+        is_blurry = blur_score < 400
         is_too_dark = brightness_score < 40
 
   # what if the image is too light?
