@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rentry AI Microservice API Documentation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px 30px;
+        }
+
+        .endpoint-section {
+            margin-bottom: 40px;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            overflow: hidden;
+            transition: box-shadow 0.3s ease;
+        }
+
+        .endpoint-section:hover {
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        .endpoint-header {
+            background: #f8fafc;
+            padding: 20px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .method {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 5px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-right: 10px;
+            text-transform: uppercase;
+        }
+
+        .get { background: #10b981; color: white; }
+        .post { background: #3b82f6; color: white; }
+        .put { background: #f59e0b; color: white; }
+        .delete { background: #ef4444; color: white; }
+
+        .endpoint-url {
+            font-family: 'Courier New', monospace;
+            font-size: 1.1rem;
+            color: #1f2937;
+            font-weight: 600;
+        }
+
+        .endpoint-body {
+            padding: 25px;
+        }
+
+        .description {
+            margin-bottom: 20px;
+            color: #6b7280;
+        }
+
+        .params-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        .params-table th,
+        .params-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .params-table th {
+            background: #f9fafb;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .code-block {
+            background: #1f2937;
+            color: #e5e7eb;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+
+        .response-example {
+            background: #f0fdf4;
+            border: 1px solid #86efac;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .server-info {
+            background: #fef3c7;
+            border: 1px solid #fcd34d;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 30px;
+        }
+
+        .server-info h3 {
+            color: #92400e;
+            margin-bottom: 10px;
+        }
+
+        .footer {
+            background: #f8fafc;
+            padding: 20px;
+            text-align: center;
+            color: #6b7280;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .required { background: #fef2f2; color: #dc2626; }
+        .optional { background: #f0fdf4; color: #16a34a; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>API Documentation</h1>
+            <p>Rentry AI Microservice - Endpoints Reference</p>
+        </header>
+
+        <div class="content">
+            <h2 style="margin-bottom: 30px; color: #1f2937;">Available Endpoints</h2>
+
+            <!-- Health Check Endpoint -->
+            <div class="endpoint-section">
+                <div class="endpoint-header">
+                    <span class="method get">GET</span>
+                    <span class="endpoint-url">/</span>
+                </div>
+                <div class="endpoint-body">
+                    <p class="description">Health check endpoint that returns service status and lists all available endpoints.</p>
+                    
+                    <h4 style="margin-bottom: 10px; color: #374151;">Parameters</h4>
+                    <p style="color: #6b7280; margin-bottom: 20px;">None</p>
+
+                    <h4 style="margin-bottom: 10px; color: #374151;">Response Example</h4>
+                    <div class="response-example">
+                        <pre style="margin: 0; font-family: 'Courier New', monospace;">{
+  "message": "Rentry AI Engine is Online",
+  "endpoints": [
+    "/recommend/{id}",
+    "/predict-price/{value}",
+    "/validate-image/"
+  ]
+}</pre>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recommendation Endpoint -->
+            <div class="endpoint-section">
+                <div class="endpoint-header">
+                    <span class="method get">GET</span>
+                    <span class="endpoint-url">/recommend/{product_uuid}</span>
+                </div>
+                <div class="endpoint-body">
+                    <p class="description">Get product recommendations based on a given product UUID using AI similarity analysis.</p>
+                    
+                    <h4 style="margin-bottom: 10px; color: #374151;">Parameters</h4>
+                    <table class="params-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Type</th>
+                                <th>Required</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>product_uuid</code></td>
+                                <td>string</td>
+                                <td><span class="badge required">Required</span></td>
+                                <td>UUID of the product to get recommendations for</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <h4 style="margin-bottom: 10px; color: #374151;">Response Example</h4>
+                    <div class="response-example">
+                        <pre style="margin: 0; font-family: 'Courier New', monospace;">{
+  "status": "success",
+  "recommended_ids": ["uuid1", "uuid2", "uuid3"]
+}</pre>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pricing Endpoint -->
+            <div class="endpoint-section">
+                <div class="endpoint-header">
+                    <span class="method get">GET</span>
+                    <span class="endpoint-url">/predict-price/{market_value}</span>
+                </div>
+                <div class="endpoint-body">
+                    <p class="description">Predict rental price based on market value using AI pricing model with 5-tier fallback logic.</p>
+                    
+                    <h4 style="margin-bottom: 10px; color: #374151;">Parameters</h4>
+                    <table class="params-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Type</th>
+                                <th>Required</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>market_value</code></td>
+                                <td>float</td>
+                                <td><span class="badge required">Required</span></td>
+                                <td>Market value of the product</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <h4 style="margin-bottom: 10px; color: #374151;">Response Example</h4>
+                    <div class="response-example">
+                        <pre style="margin: 0; font-family: 'Courier New', monospace;">{
+  "status": "success",
+  "suggested_rent": 25.50
+}</pre>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Image Validation Endpoint -->
+            <div class="endpoint-section">
+                <div class="endpoint-header">
+                    <span class="method get">GET</span>
+                    <span class="endpoint-url">/validate-image/</span>
+                </div>
+                <div class="endpoint-body">
+                    <p class="description">Validate image quality using computer vision analysis to check for blur, exposure, and other quality metrics.</p>
+                    
+                    <h4 style="margin-bottom: 10px; color: #374151;">Parameters</h4>
+                    <table class="params-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Type</th>
+                                <th>Required</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>path</code></td>
+                                <td>string</td>
+                                <td><span class="badge required">Required</span></td>
+                                <td>File path to the image to validate (query parameter)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <h4 style="margin-bottom: 10px; color: #374151;">Example Usage</h4>
+                    <div class="code-block">
+                        GET /validate-image/?path=/path/to/image.jpg
+                    </div>
+
+                    <h4 style="margin-bottom: 10px; color: #374151;">Response Example</h4>
+                    <div class="response-example">
+                        <pre style="margin: 0; font-family: 'Courier New', monospace;">{
+  "is_valid": true,
+  "quality_score": 0.85,
+  "issues": []
+}</pre>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Server Information -->
+            <div class="server-info">
+                <h3>Server Information</h3>
+                <p><strong>Host:</strong> 0.0.0.0</p>
+                <p><strong>Port:</strong> 8000</p>
+                <p><strong>Framework:</strong> FastAPI</p>
+                <p><strong>Interactive Docs:</strong> <a href="http://localhost:8000/docs" target="_blank">http://localhost:8000/docs</a></p>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>&copy; 2024 Rentry AI Microservice. Generated documentation.</p>
+        </div>
+    </div>
+</body>
+</html>
