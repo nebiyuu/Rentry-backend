@@ -3,55 +3,394 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ecom API Reference</title>
+  <title>Rentry API Reference</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    :root { color-scheme: light dark; }
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 32px; line-height: 1.4; }
-    h1 { margin-bottom: 4px; }
-    h2 { margin-top: 28px; border-bottom: 1px solid #ccc; padding-bottom: 4px; }
-    h3 { margin-top: 18px; }
-    code, pre { background: color-mix(in oklab, Canvas 92%, black 8%); padding: 2px 6px; border-radius: 6px; }
-    pre { padding: 12px; overflow: auto; }
-    .endpoint { margin: 14px 0; padding: 12px; border: 1px solid #ddd; border-radius: 8px; }
-    .method { font-weight: 700; }
-    .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; margin-left: 6px; }
-    .auth { background: #e1f5fe; color: #01579b; }
-    .protected { background: #f3e5f5; color: #4a148c; }
-    .note { font-size: 13px; color: #666; }
-    ul { margin: 8px 0 0 18px; }
-    .grid { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+    :root {
+      --primary-color: #6366f1;
+      --primary-dark: #4f46e5;
+      --secondary-color: #22d3ee;
+      --success-color: #10b981;
+      --warning-color: #f59e0b;
+      --danger-color: #ef4444;
+      --dark-bg: #0f172a;
+      --dark-surface: #1e293b;
+      --dark-border: #334155;
+      --light-bg: #ffffff;
+      --light-surface: #f8fafc;
+      --light-border: #e2e8f0;
+      --text-primary: #1e293b;
+      --text-secondary: #64748b;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      color: var(--text-primary);
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    .hero {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 3rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+    }
+
+    .deployment-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: linear-gradient(135deg, var(--success-color), #059669);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 50px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    .deployment-badge::before {
+      content: '🚀';
+      font-size: 1rem;
+    }
+
+    h1 {
+      font-size: 3rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 1rem;
+      line-height: 1.2;
+    }
+
+    .hero-description {
+      color: var(--text-secondary);
+      font-size: 1.125rem;
+      margin-bottom: 2rem;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .api-info {
+      background: var(--light-surface);
+      border: 1px solid var(--light-border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .api-info-icon {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 1.5rem;
+    }
+
+    .api-info-content {
+      flex: 1;
+    }
+
+    .api-info-title {
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 0.25rem;
+    }
+
+    .api-info-url {
+      font-family: 'Courier New', monospace;
+      color: var(--primary-color);
+      font-weight: 500;
+    }
+
+    .content {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 3rem;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    }
+
+    h2 {
+      font-size: 1.875rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-top: 2.5rem;
+      margin-bottom: 1.5rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 2px solid var(--light-border);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    h2::before {
+      content: '📋';
+      font-size: 1.5rem;
+    }
+
+    h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-top: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .endpoint {
+      background: var(--light-surface);
+      border: 1px solid var(--light-border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    .endpoint:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+      border-color: var(--primary-color);
+    }
+
+    .endpoint-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .method {
+      font-weight: 700;
+      padding: 0.25rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .method.get { background: #dbeafe; color: #1e40af; }
+    .method.post { background: #dcfce7; color: #166534; }
+    .method.patch { background: #fef3c7; color: #92400e; }
+    .method.delete { background: #fee2e2; color: #991b1b; }
+    .method.put { background: #e9d5ff; color: #6b21a8; }
+
+    .endpoint-path {
+      font-family: 'Courier New', monospace;
+      background: var(--dark-bg);
+      color: #e2e8f0;
+      padding: 0.25rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.875rem;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.25rem 0.75rem;
+      border-radius: 50px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .pill.auth {
+      background: linear-gradient(135deg, #22d3ee, #06b6d4);
+      color: white;
+    }
+
+    .pill.protected {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: white;
+    }
+
+    .endpoint-description {
+      color: var(--text-secondary);
+      margin-bottom: 1rem;
+      font-size: 0.95rem;
+    }
+
+    code, pre {
+      background: var(--dark-bg);
+      color: #e2e8f0;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.875rem;
+      overflow-x: auto;
+    }
+
+    pre {
+      padding: 1rem;
+      margin: 0.75rem 0;
+      border: 1px solid var(--dark-border);
+    }
+
+    ul {
+      margin: 0.75rem 0 0.75rem 1.5rem;
+      color: var(--text-secondary);
+    }
+
+    li {
+      margin-bottom: 0.5rem;
+    }
+
+    .note {
+      background: linear-gradient(135deg, #fef3c7, #fde68a);
+      border: 1px solid #f59e0b;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-top: 1rem;
+      font-size: 0.875rem;
+      color: #92400e;
+      position: relative;
+    }
+
+    .note::before {
+      content: '💡';
+      position: absolute;
+      top: -0.5rem;
+      left: 1rem;
+      background: #fef3c7;
+      padding: 0 0.5rem;
+    }
+
+    .footer {
+      text-align: center;
+      padding: 2rem;
+      color: white;
+      margin-top: 2rem;
+    }
+
+    .footer a {
+      color: var(--secondary-color);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .footer a:hover {
+      text-decoration: underline;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 1rem;
+      }
+      
+      .hero, .content {
+        padding: 1.5rem;
+      }
+      
+      h1 {
+        font-size: 2rem;
+      }
+      
+      .api-info {
+        flex-direction: column;
+        text-align: center;
+      }
+    }
   </style>
 </head>
 <body>
-  <h1>Ecom API Reference</h1>
-  <div class="note">Base URL: <code>/api</code>. All request/response bodies are JSON.</div>
+  <div class="container">
+    <div class="hero">
+      <div class="deployment-badge"><a href="https://rentry.servequake.com" target="_blank" style="color: white; text-decoration: none;">Live at https://rentry.servequake.com</a></div>
+      <h1>Rentry API Reference</h1>
+      <p class="hero-description">
+        Complete API documentation for the Rentry e-commerce platform. 
+        Manage products, users, orders, rentals, and payments with our comprehensive REST API.
+      </p>
+      <div class="api-info">
+        <div class="api-info-icon">🔗</div>
+        <div class="api-info-content">
+          <div class="api-info-title">Base URL</div>
+          <div class="api-info-url"><a href="https://rentry.servequake.com/api" target="_blank" style="color: inherit; text-decoration: none;">https://rentry.servequake.com/api</a></div>
+        </div>
+      </div>
+    </div>
 
-  <h2>Users (Unified auth)</h2>
+    <div class="content">
 
-
+  <h2>Authentication &amp; Users</h2>
 
   <div class="endpoint">
-    <div><span class="method">DELETE</span> <code>/api/users/:id</code> <span class="pill protected">JWT</span></div>
-    <div>Deletes the user and related Seller/Buyer records. Only the same user or an admin can perform this.</div>
-    <h4>Request</h4>
-    <ul>
-      <li>Headers: <code>Authorization: Bearer &lt;token&gt;</code></li>
-      <li>Params: <code>id</code> — User ID</li>
-      <li>Body: none</li>
-    </ul>
+    <div class="endpoint-header">
+      <span class="method post">POST</span>
+      <span class="endpoint-path">/api/users/login</span>
+      <span class="pill auth">Public</span>
+    </div>
+    <div class="endpoint-description">Universal login for buyer, seller, and admin. Role is resolved from User.</div>
+    <h4>Request body</h4>
+<pre>{
+  "username": "username-or-email",
+  "password": "secret"
+}</pre>
     <h4>Responses</h4>
     <ul>
-      <li>200: <code>{ "message": "User and related records deleted" }</code></li>
-      <li>401: <code>{ "message": "Unauthorized" }</code></li>
-      <li>403: <code>{ "message": "Forbidden" }</code></li>
-      <li>404: <code>{ "message": "User not found" }</code></li>
-      <li>500: <code>{ "message": "Error deleting user", "error": "..." }</code></li>
+      <li>200: <code>{ message, token, user: { id, username, email, role } }</code></li>
+      <li>400/401/404: <code>User not found | Invalid password | All fields required</code></li>
+      <li>403 (buyer/seller): <code>Email not verified</code></li>
+      <li>403 (seller): <code>Seller not approved yet</code></li>
     </ul>
   </div>
 
   <div class="endpoint">
-    <div><span class="method">POST</span> <code>/api/users/resend-otp</code> <span class="pill auth">Public</span></div>
-    <div>Resends a new verification code (buyers or sellers).</div>
+    <div class="endpoint-header">
+      <span class="method post">POST</span>
+      <span class="endpoint-path">/api/users/resend-otp</span>
+      <span class="pill auth">Public</span>
+    </div>
+    <div class="endpoint-description">Resends a new verification code (buyers or sellers).</div>
     <h4>Request body</h4>
 <pre>{
   "email": "user@example.com"
@@ -64,8 +403,12 @@
   </div>
 
   <div class="endpoint">
-    <div><span class="method">POST</span> <code>/api/users/verify-email</code> <span class="pill auth">Public</span></div>
-    <div>Verifies the code, marks emailVerified, ensures a User exists, and returns JWT.</div>
+    <div class="endpoint-header">
+      <span class="method post">POST</span>
+      <span class="endpoint-path">/api/users/verify-email</span>
+      <span class="pill auth">Public</span>
+    </div>
+    <div class="endpoint-description">Verifies the code, marks emailVerified, ensures a User exists, and returns JWT.</div>
     <h4>Request body</h4>
 <pre>{
   "email": "user@example.com",
@@ -82,246 +425,25 @@
   </div>
 
   <div class="endpoint">
-    <div><span class="method">POST</span> <code>/api/users/login</code> <span class="pill auth">Public</span></div>
-    <div>Universal login for buyer, seller, and admin. Role is resolved from User.</div>
-    <h4>Request body</h4>
-<pre>{
-  "username": "username-or-email",
-  "password": "secret"
-}</pre>
-    <h4>Responses</h4>
-    <ul>
-      <li>200: <code>{ message, token, user: { id, username, email, role } }</code></li>
-      <li>400/401/404: <code>User not found | Invalid password | All fields required</code></li>
-      <li>403 (buyer/seller): <code>Email not verified</code></li>
-      <li>403 (seller): <code>Seller not approved yet</code></li>
-    </ul>
-  </div>
-
-  <h2>Products</h2>
-
-  <div class="endpoint">
-    <div><span class="method">GET</span> <code>/api/products</code> <span class="pill auth">Public</span></div>
-    <div>Lists all products. Supports filtering by category. Admins can see soft-deleted products as well.</div>
-    <h4>Request</h4>
-    <ul>
-      <li>No authentication required for basic listing</li>
-      <li>Query Parameters (optional):
-        <ul>
-          <li><code>category</code> — Filter products by category (e.g., <code>?category=Mobile Phones & Tablets</code>)</li>
-        </ul>
-      </li>
-      <li>Admins can include deleted products in results</li>
-    </ul>
-    <h4>Examples</h4>
-    <ul>
-      <li><code>GET /api/products</code> — Get all products</li>
-      <li><code>GET /api/products?category=Mobile Phones & Tablets</code> — Get only Mobile Phones & Tablets</li>
-      <li><code>GET /api/products?category=Computers & Laptops</code> — Get only Computers & Laptops</li>
-    </ul>
-    <h4>Responses</h4>
-    <ul>
-      <li>200: <code>{ "success": true, "count": number, "data": Product[] }</code></li>
-      <li>500: <code>{ "success": false, "message": "Error retrieving products", "error": "..." }</code></li>
-    </ul>
-  </div>
-
-  <div class="endpoint">
-    <div><span class="method">GET</span> <code>/api/products/:id</code> <span class="pill auth">Public</span></div>
-    <div>Get a specific product by ID.</div>
-    <h4>Request</h4>
-    <ul>
-      <li>Params: <code>id</code> — Product ID (required)</li>
-      <li>Admins can retrieve soft-deleted products</li>
-    </ul>
-    <h4>Responses</h4>
-    <ul>
-      <li>200: <code>{ "success": true, "data": Product }</code></li>
-      <li>404: <code>{ "success": false, "message": "Product not found" }</code></li>
-      <li>500: <code>{ "success": false, "message": "Error retrieving product", "error": "..." }</code></li>
-    </ul>
-    <div class="note">If the recommendation microservice is unavailable, the endpoint will still return the product data without recommendations. Check browser console for recommendation API warnings.</div>
-  </div>
-
-  <div class="endpoint">
-    <div><span class="method">POST</span> <code>/api/products</code> <span class="pill protected">JWT (Seller/Admin)</span></div>
-    <div>Creates a new product. Only authenticated sellers or admins can create products.</div>
+    <div class="endpoint-header">
+      <span class="method delete">DELETE</span>
+      <span class="endpoint-path">/api/users/:id</span>
+      <span class="pill protected">JWT</span>
+    </div>
+    <div class="endpoint-description">Deletes the user and related Seller/Buyer records. Only the same user or an admin can perform this.</div>
     <h4>Request</h4>
     <ul>
       <li>Headers: <code>Authorization: Bearer &lt;token&gt;</code></li>
-      <li>Body (JSON):
-<pre>{
-  "name": "string (required, min 3, max 100 chars)",
-  "description": "string (required, min 10 chars)",
-  "category": "string (required)",
-  "condition": "string (optional, enum: ['new', 'used', 'refurbished'], default: 'new')",
-  "price": "number (required, > 0)",
-  "images": "string[] (optional, array of image URLs)",
-  "ownerId": "number (optional, admin only - for assigning product to specific seller)",
-  "trialPolicy": {                      // optional trial policy configuration
-    "trialDays": "number (> 0)",      // length of trial in days
-    "penaltyType": "string",          // e.g. 'flat' or 'percentage'
-    "penaltyValue": "number (>= 0)",  // penalty amount
-    "returnWindowHours": "number (> 0)" // allowed return window in hours
-  }
-}</pre>
-      </li>
+      <li>Params: <code>id</code> — User ID</li>
+      <li>Body: none</li>
     </ul>
     <h4>Responses</h4>
     <ul>
-      <li>201: <code>{ "success": true, "data": Product }</code></li>
-      <li>400: <code>{ "success": false, "message": "Validation error", "errors": [...] }</code></li>
-      <li>400: <code>{ "success": false, "message": "Image validation failed for &lt;filename&gt;", "reason": "Image is too light", "score": number }</code></li>
-      <li>400: <code>{ "success": false, "message": "Image validation failed for &lt;filename&gt;", "reason": "Image is too blurry", "score": number }</code></li>
-      <li>400: <code>{ "success": false, "message": "Image validation failed for &lt;filename&gt;", "reason": "Image is too dark", "score": number }</code></li>
-      <li>400: <code>{ "success": false, "message": "Image validation failed for &lt;filename&gt;", "reason": "Image file not found at this path", "score": number }</code></li>
-      <li>400: <code>{ "success": false, "message": "Image validation failed for &lt;filename&gt;", "reason": "System error: &lt;error_message&gt;", "score": number }</code></li>
-      <li>400: <code>{ "success": false, "message": "Error validating image &lt;filename&gt;", "error": "..." }</code></li>
-      <li>400: <code>{ "success": false, "message": "Image validation process failed", "error": "..." }</code></li>
-      <li>401: <code>{ "success": false, "message": "Unauthorized" }</code></li>
-      <li>403: <code>{ "success": false, "message": "Only sellers and admins can create products" }</code></li>
-      <li>500: <code>{ "success": false, "message": "Error creating product", "error": "..." }</code></li>
-    </ul>
-  </div>
-
-  <div class="endpoint">
-    <div><span class="method">PATCH</span> <code>/api/products/:id</code> <span class="pill protected">JWT (Owner/Admin)</span></div>
-    <div>Partially updates an existing product. Only the product owner or admin can update it.</div>
-    <h4>Request</h4>
-    <ul>
-      <li>Headers: <code>Authorization: Bearer &lt;token&gt;</code></li>
-      <li>Params: <code>id</code> — Product ID to update (required)</li>
-      <li>Body (JSON, all fields optional except for the ones being updated):
-<pre>{
-  "name": "string (min 3, max 100 chars)",
-  "description": "string (min 10 chars)",
-  "category": "string",
-  "condition": "string (enum: ['new', 'used', 'refurbished'])",
-  "price": "number (> 0)",
-  "images": "string[] (array of image URLs)",
-  "ownerId": "number (admin only - for transferring product ownership)",
-  "trialPolicy": {                      // optional create/update of trial policy
-    "trialDays": "number (> 0)",
-    "penaltyValue": "number (>= 0)",
-    "returnWindowHours": "number (> 0)"
-  }
-}</pre>
-      </li>
-    </ul>
-    <h4>Responses</h4>
-    <ul>
-      <li>200: <code>{ "success": true, "data": { product: UpdatedProduct, trialPolicy: TrialPolicy | null } }</code></li>
-      <li>400: <code>{ "success": false, "message": "Validation error", "errors": [...] }</code></li>
-      <li>400: <code>{ "success": false, "message": "Image validation failed for &lt;filename&gt;", "reason": "Image is too light", "score": number }</code></li>
-      <li>400: <code>{ "success": false, "message": "Image validation failed for &lt;filename&gt;", "reason": "Image is too blurry", "score": number }</code></li>
-      <li>400: <code>{ "success": false, "message": "Image validation failed for &lt;filename&gt;", "reason": "Image is too dark", "score": number }</code></li>
-      <li>400: <code>{ "success": false, "message": "Image validation failed for &lt;filename&gt;", "reason": "Image file not found at this path", "score": number }</code></li>
-      <li>400: <code>{ "success": false, "message": "Image validation failed for &lt;filename&gt;", "reason": "System error: &lt;error_message&gt;", "score": number }</code></li>
-      <li>400: <code>{ "success": false, "message": "Error validating image &lt;filename&gt;", "error": "..." }</code></li>
-      <li>400: <code>{ "success": false, "message": "Image validation process failed", "error": "..." }</code></li>
-      <li>401: <code>{ "success": false, "message": "Unauthorized" }</code></li>
-      <li>403: <code>{ "success": false, "message": "Not authorized to update this product" }</code></li>
-      <li>404: <code>{ "success": false, "message": "Product not found" }</code></li>
-      <li>500: <code>{ "success": false, "message": "Error updating product", "error": "..." }</code></li>
-    </ul>
-  </div>
-
-  <div class="endpoint">
-    <div><span class="method">DELETE</span> <code>/api/products/:id</code> <span class="pill protected">JWT (Owner/Admin)</span></div>
-    <div>Soft deletes a product. Only the product owner or admin can delete it. The product is not actually removed from the database but marked as deleted.</div>
-    <h4>Request</h4>
-    <ul>
-      <li>Headers: <code>Authorization: Bearer &lt;token&gt;</code></li>
-      <li>Params: <code>id</code> — Product ID to delete (required)</li>
-    </ul>
-    <h4>Responses</h4>
-    <ul>
-      <li>200: <code>{ "success": true, "message": "Product deleted successfully" }</code></li>
-      <li>401: <code>{ "success": false, "message": "Unauthorized" }</code></li>
-      <li>403: <code>{ "success": false, "message": "Not authorized to delete this product" }</code></li>
-      <li>404: <code>{ "success": false, "message": "Product not found" }</code></li>
-      <li>500: <code>{ "success": false, "message": "Error deleting product", "error": "..." }</code></li>
-    </ul>
-  </div>
-
-  <h2>Trial Policies</h2>
-
-  <div class="endpoint">
-    <div><span class="method">POST</span> <code>/api/products/:id/trial-policy</code> <span class="pill protected">JWT (Seller/Admin)</span></div>
-    <div>Creates a trial policy for a product. Only authenticated sellers or admins can create trial policies.</div>
-    <h4>Request</h4>
-    <ul>
-      <li>Headers: <code>Authorization: Bearer &lt;token&gt;</code></li>
-      <li>Params: <code>id</code> — Product ID (required)</li>
-      <li>Body (JSON):
-<pre>{
-  "trial_days": "number (required, 1-365)",
-  "return_window_hours": "number (required, 1-8760)"
-}</pre>
-      </li>
-    </ul>
-    <h4>Responses</h4>
-    <ul>
-      <li>201: <code>{ "message": "Trial policy created successfully", "trialPolicy": TrialPolicy }</code></li>
-      <li>400: <code>{ "errors": [...] } | { "error": "Product not found" } | { "error": "Trial policy already exists for this product" }</code></li>
+      <li>200: <code>{ "message": "User and related records deleted" }</code></li>
       <li>401: <code>{ "message": "Unauthorized" }</code></li>
-      <li>500: <code>{ "error": "Internal server error" }</code></li>
-    </ul>
-  </div>
-
-  <div class="endpoint">
-    <div><span class="method">PATCH</span> <code>/api/products/:id/trial-policy</code> <span class="pill protected">JWT (Seller/Admin)</span></div>
-    <div>Updates an existing trial policy. Only the product owner or admin can update it. All fields are optional.</div>
-    <h4>Request</h4>
-    <ul>
-      <li>Headers: <code>Authorization: Bearer &lt;token&gt;</code></li>
-      <li>Params: <code>id</code> — Product ID (required)</li>
-      <li>Body (JSON, all fields optional):
-<pre>{
-  "trial_days": "number (1-365)",
-  "return_window_hours": "number (1-8760)"
-}</pre>
-      </li>
-    </ul>
-    <h4>Responses</h4>
-    <ul>
-      <li>200: <code>{ "message": "Trial policy updated successfully", "trialPolicy": TrialPolicy }</code></li>
-      <li>400: <code>{ "errors": [...] }</code></li>
-      <li>401: <code>{ "message": "Unauthorized" }</code></li>
-      <li>404: <code>{ "error": "Trial policy not found for this product" }</code></li>
-      <li>500: <code>{ "error": "Internal server error" }</code></li>
-    </ul>
-  </div>
-
-  <div class="endpoint">
-    <div><span class="method">DELETE</span> <code>/api/products/:id/trial-policy</code> <span class="pill protected">JWT (Seller/Admin)</span></div>
-    <div>Soft deletes/disables a trial policy. Only the product owner or admin can delete it.</div>
-    <h4>Request</h4>
-    <ul>
-      <li>Headers: <code>Authorization: Bearer &lt;token&gt;</code></li>
-      <li>Params: <code>id</code> — Product ID (required)</li>
-    </ul>
-    <h4>Responses</h4>
-    <ul>
-      <li>200: <code>{ "message": "Trial policy disabled successfully" }</code></li>
-      <li>401: <code>{ "message": "Unauthorized" }</code></li>
-      <li>404: <code>{ "error": "Trial policy not found for this product" }</code></li>
-      <li>500: <code>{ "error": "Internal server error" }</code></li>
-    </ul>
-  </div>
-
-  <div class="endpoint">
-    <div><span class="method">GET</span> <code>/api/products/:id/trial-policy</code> <span class="pill auth">Public</span></div>
-    <div>Gets the trial policy for a specific product.</div>
-    <h4>Request</h4>
-    <ul>
-      <li>Params: <code>id</code> — Product ID (required)</li>
-    </ul>
-    <h4>Responses</h4>
-    <ul>
-      <li>200: <code>{ "trialPolicy": TrialPolicy }</code></li>
-      <li>404: <code>{ "error": "Trial policy not found for this product" }</code></li>
-      <li>500: <code>{ "error": "Internal server error" }</code></li>
+      <li>403: <code>{ "message": "Forbidden" }</code></li>
+      <li>404: <code>{ "message": "User not found" }</code></li>
+      <li>500: <code>{ "message": "Error deleting user", "error": "..." }</code></li>
     </ul>
   </div>
 
@@ -453,6 +575,279 @@ profilePic: &lt;file&gt;          // required image file field</pre>
     </ul>
   </div>
 
+  <div class="endpoint">
+    <div><span class="method">PATCH</span> <code>/api/sellers/:id</code> <span class="pill protected">JWT</span></div>
+    <div>Update seller information. Authenticated users only.</div>
+    <h4>Request</h4>
+    <ul>
+      <li>Headers: <code>Authorization: Bearer &lt;token&gt;</code></li>
+      <li>Params: <code>id</code> — Seller ID</li>
+    </ul>
+    <h4>Request body (all fields optional)</h4>
+<pre>{
+  "firstName": "Updated Name",
+  "lastName": "Updated Last",
+  "email": "updated@example.com",
+  "address": "Updated Address",
+  "license": "NEW-LIC-123",
+  "approved": true
+}</pre>
+    <h4>Responses</h4>
+    <ul>
+      <li>200: <code>{ "message": "Seller updated successfully", "seller": { id, firstName, lastName, phoneNumber, storeName, username, email, address, license, approved, emailVerified, profilePic } }</code></li>
+      <li>401: <code>{ "message": "Unauthorized" }</code></li>
+      <li>404: <code>{ "message": "Seller not found" }</code></li>
+      <li>500: <code>{ "message": "Error updating seller", "error": "..." }</code></li>
+    </ul>
+  </div>
+
+  <h2>Products</h2>
+
+  <div class="endpoint">
+    <div class="endpoint-header">
+      <span class="method get">GET</span>
+      <span class="endpoint-path">/api/products</span>
+      <span class="pill auth">Public</span>
+    </div>
+    <div class="endpoint-description">Lists all products. Supports filtering by category. Admins can see soft-deleted products as well.</div>
+    <h4>Request</h4>
+    <ul>
+      <li>No authentication required for basic listing</li>
+      <li>Query Parameters (optional):
+        <ul>
+          <li><code>category</code> — Filter products by category (e.g., <code>?category=Mobile Phones & Tablets</code>)</li>
+        </ul>
+      </li>
+      <li>Admins can include deleted products in results</li>
+    </ul>
+    <h4>Examples</h4>
+    <ul>
+      <li><code>GET /api/products</code> — Get all products</li>
+      <li><code>GET /api/products?category=Mobile Phones & Tablets</code> — Get only Mobile Phones & Tablets</li>
+      <li><code>GET /api/products?category=Computers & Laptops</code> — Get only Computers & Laptops</li>
+    </ul>
+    <h4>Responses</h4>
+    <ul>
+      <li>200: <code>{ "success": true, "count": number, "data": Product[] }</code></li>
+      <li>500: <code>{ "success": false, "message": "Error retrieving products", "error": "..." }</code></li>
+    </ul>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header">
+      <span class="method get">GET</span>
+      <span class="endpoint-path">/api/products/:id</span>
+      <span class="pill auth">Public</span>
+    </div>
+    <div class="endpoint-description">Get a specific product by ID.</div>
+    <h4>Request</h4>
+    <ul>
+      <li>Params: <code>id</code> — Product ID (required)</li>
+      <li>Admins can retrieve soft-deleted products</li>
+    </ul>
+    <h4>Responses</h4>
+    <ul>
+      <li>200: <code>{ "success": true, "data": Product }</code></li>
+      <li>404: <code>{ "success": false, "message": "Product not found" }</code></li>
+      <li>500: <code>{ "success": false, "message": "Error retrieving product", "error": "..." }</code></li>
+    </ul>
+    <div class="note">If the recommendation microservice is unavailable, the endpoint will still return the product data without recommendations. Check browser console for recommendation API warnings.</div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header">
+      <span class="method post">POST</span>
+      <span class="endpoint-path">/api/products</span>
+      <span class="pill protected">JWT (Seller/Admin)</span>
+    </div>
+    <div class="endpoint-description">Creates a new product. Only authenticated sellers or admins can create products.</div>
+    <h4>Request</h4>
+    <ul>
+      <li>Headers: <code>Authorization: Bearer &lt;token&gt;</code></li>
+      <li>Body (JSON):
+<pre>{
+  "name": "string (required, min 3, max 100 chars)",
+  "description": "string (required, min 10 chars)",
+  "category": "string (required)",
+  "condition": "string (optional, enum: ['new', 'used', 'refurbished'], default: 'new')",
+  "price": "number (required, > 0)",
+  "images": "string[] (optional, array of image URLs)",
+  "ownerId": "number (optional, admin only - for assigning product to specific seller)",
+  "trialPolicy": {                      // optional trial policy configuration
+    "trialDays": "number (> 0)",      // length of trial in days
+    "penaltyType": "string",          // e.g. 'flat' or 'percentage'
+    "penaltyValue": "number (>= 0)",  // penalty amount
+    "returnWindowHours": "number (> 0)" // allowed return window in hours
+  }
+}</pre>
+      </li>
+    </ul>
+    <h4>Responses</h4>
+    <ul>
+      <li>201: <code>{ "success": true, "data": Product }</code></li>
+      <li>400: <code>{ "success": false, "message": "Validation error", "errors": [...] }</code></li>
+      <li>400: <code>{ "success": false, "message": "Image validation failed for &lt;filename&gt;", "reason": "Image is too light", "score": number }</code></li>
+      <li>400: <code>{ "success": false, "message": "Image validation failed for &lt;filename&gt;", "reason": "Image is too blurry", "score": number }</code></li>
+      <li>400: <code>{ "success": false, "message": "Image validation failed for &lt;filename&gt;", "reason": "Image is too dark", "score": number }</code></li>
+      <li>400: <code>{ "success": false, "message": "Image validation failed for &lt;filename&gt;", "reason": "Image file not found at this path", "score": number }</code></li>
+      <li>400: <code>{ "success": false, "message": "Image validation failed for &lt;filename&gt;", "reason": "System error: &lt;error_message&gt;", "score": number }</code></li>
+      <li>400: <code>{ "success": false, "message": "Error validating image &lt;filename&gt;", "error": "..." }</code></li>
+      <li>400: <code>{ "success": false, "message": "Image validation process failed", "error": "..." }</code></li>
+      <li>401: <code>{ "success": false, "message": "Unauthorized" }</code></li>
+      <li>403: <code>{ "success": false, "message": "Only sellers and admins can create products" }</code></li>
+      <li>500: <code>{ "success": false, "message": "Error creating product", "error": "..." }</code></li>
+    </ul>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header">
+      <span class="method patch">PATCH</span>
+      <span class="endpoint-path">/api/products/:id</span>
+      <span class="pill protected">JWT (Owner/Admin)</span>
+    </div>
+    <div class="endpoint-description">Partially updates an existing product. Only the product owner or admin can update it.</div>
+    <h4>Request</h4>
+    <ul>
+      <li>Headers: <code>Authorization: Bearer &lt;token&gt;</code></li>
+      <li>Params: <code>id</code> — Product ID to update (required)</li>
+      <li>Body (JSON, all fields optional except for the ones being updated):
+<pre>{
+  "name": "string (min 3, max 100 chars)",
+  "description": "string (min 10 chars)",
+  "category": "string",
+  "condition": "string (enum: ['new', 'used', 'refurbished'])",
+  "price": "number (> 0)",
+  "images": "string[] (array of image URLs)",
+  "ownerId": "number (admin only - for transferring product ownership)",
+  "trialPolicy": {                      // optional create/update of trial policy
+    "trialDays": "number (> 0)",
+    "penaltyValue": "number (>= 0)",
+    "returnWindowHours": "number (> 0)"
+  }
+}</pre>
+      </li>
+    </ul>
+    <h4>Responses</h4>
+    <ul>
+      <li>200: <code>{ "success": true, "data": { product: UpdatedProduct, trialPolicy: TrialPolicy | null } }</code></li>
+      <li>400: <code>{ "success": false, "message": "Validation error", "errors": [...] }</code></li>
+      <li>400: <code>{ "success": false, "message": "Image validation failed for &lt;filename&gt;", "reason": "Image is too light", "score": number }</code></li>
+      <li>400: <code>{ "success": false, "message": "Image validation failed for &lt;filename&gt;", "reason": "Image is too blurry", "score": number }</code></li>
+      <li>400: <code>{ "success": false, "message": "Image validation failed for &lt;filename&gt;", "reason": "Image is too dark", "score": number }</code></li>
+      <li>400: <code>{ "success": false, "message": "Image validation failed for &lt;filename&gt;", "reason": "Image file not found at this path", "score": number }</code></li>
+      <li>400: <code>{ "success": false, "message": "Image validation failed for &lt;filename&gt;", "reason": "System error: &lt;error_message&gt;", "score": number }</code></li>
+      <li>400: <code>{ "success": false, "message": "Error validating image &lt;filename&gt;", "error": "..." }</code></li>
+      <li>400: <code>{ "success": false, "message": "Image validation process failed", "error": "..." }</code></li>
+      <li>401: <code>{ "success": false, "message": "Unauthorized" }</code></li>
+      <li>403: <code>{ "success": false, "message": "Not authorized to update this product" }</code></li>
+      <li>404: <code>{ "success": false, "message": "Product not found" }</code></li>
+      <li>500: <code>{ "success": false, "message": "Error updating product", "error": "..." }</code></li>
+    </ul>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header">
+      <span class="method delete">DELETE</span>
+      <span class="endpoint-path">/api/products/:id</span>
+      <span class="pill protected">JWT (Owner/Admin)</span>
+    </div>
+    <div class="endpoint-description">Soft deletes a product. Only the product owner or admin can delete it. The product is not actually removed from the database but marked as deleted.</div>
+    <h4>Request</h4>
+    <ul>
+      <li>Headers: <code>Authorization: Bearer &lt;token&gt;</code></li>
+      <li>Params: <code>id</code> — Product ID to delete (required)</li>
+    </ul>
+    <h4>Responses</h4>
+    <ul>
+      <li>200: <code>{ "success": true, "message": "Product deleted successfully" }</code></li>
+      <li>401: <code>{ "success": false, "message": "Unauthorized" }</code></li>
+      <li>403: <code>{ "success": false, "message": "Not authorized to delete this product" }</code></li>
+      <li>404: <code>{ "success": false, "message": "Product not found" }</code></li>
+      <li>500: <code>{ "success": false, "message": "Error deleting product", "error": "..." }</code></li>
+    </ul>
+  </div>
+
+  <h2>Trial Policies</h2>
+
+  <div class="endpoint">
+    <div><span class="method">POST</span> <code>/api/products/:id/trial-policy</code> <span class="pill protected">JWT (Seller/Admin)</span></div>
+    <div>Creates a trial policy for a product. Only authenticated sellers or admins can create trial policies.</div>
+    <h4>Request</h4>
+    <ul>
+      <li>Headers: <code>Authorization: Bearer &lt;token&gt;</code></li>
+      <li>Params: <code>id</code> — Product ID (required)</li>
+      <li>Body (JSON):
+<pre>{
+  "trial_days": "number (required, 1-365)",
+  "return_window_hours": "number (required, 1-8760)"
+}</pre>
+      </li>
+    </ul>
+    <h4>Responses</h4>
+    <ul>
+      <li>201: <code>{ "message": "Trial policy created successfully", "trialPolicy": TrialPolicy }</code></li>
+      <li>400: <code>{ "errors": [...] } | { "error": "Product not found" } | { "error": "Trial policy already exists for this product" }</code></li>
+      <li>401: <code>{ "message": "Unauthorized" }</code></li>
+      <li>500: <code>{ "error": "Internal server error" }</code></li>
+    </ul>
+  </div>
+
+  <div class="endpoint">
+    <div><span class="method">PATCH</span> <code>/api/products/:id/trial-policy</code> <span class="pill protected">JWT (Seller/Admin)</span></div>
+    <div>Updates an existing trial policy. Only the product owner or admin can update it. All fields are optional.</div>
+    <h4>Request</h4>
+    <ul>
+      <li>Headers: <code>Authorization: Bearer &lt;token&gt;</code></li>
+      <li>Params: <code>id</code> — Product ID (required)</li>
+      <li>Body (JSON, all fields optional):
+<pre>{
+  "trial_days": "number (1-365)",
+  "return_window_hours": "number (1-8760)"
+}</pre>
+      </li>
+    </ul>
+    <h4>Responses</h4>
+    <ul>
+      <li>200: <code>{ "message": "Trial policy updated successfully", "trialPolicy": TrialPolicy }</code></li>
+      <li>400: <code>{ "errors": [...] }</code></li>
+      <li>401: <code>{ "message": "Unauthorized" }</code></li>
+      <li>404: <code>{ "error": "Trial policy not found for this product" }</code></li>
+      <li>500: <code>{ "error": "Internal server error" }</code></li>
+    </ul>
+  </div>
+
+  <div class="endpoint">
+    <div><span class="method">DELETE</span> <code>/api/products/:id/trial-policy</code> <span class="pill protected">JWT (Seller/Admin)</span></div>
+    <div>Soft deletes/disables a trial policy. Only the product owner or admin can delete it.</div>
+    <h4>Request</h4>
+    <ul>
+      <li>Headers: <code>Authorization: Bearer &lt;token&gt;</code></li>
+      <li>Params: <code>id</code> — Product ID (required)</li>
+    </ul>
+    <h4>Responses</h4>
+    <ul>
+      <li>200: <code>{ "message": "Trial policy disabled successfully" }</code></li>
+      <li>401: <code>{ "message": "Unauthorized" }</code></li>
+      <li>404: <code>{ "error": "Trial policy not found for this product" }</code></li>
+      <li>500: <code>{ "error": "Internal server error" }</code></li>
+    </ul>
+  </div>
+
+  <div class="endpoint">
+    <div><span class="method">GET</span> <code>/api/products/:id/trial-policy</code> <span class="pill auth">Public</span></div>
+    <div>Gets the trial policy for a specific product.</div>
+    <h4>Request</h4>
+    <ul>
+      <li>Params: <code>id</code> — Product ID (required)</li>
+    </ul>
+    <h4>Responses</h4>
+    <ul>
+      <li>200: <code>{ "trialPolicy": TrialPolicy }</code></li>
+      <li>404: <code>{ "error": "Trial policy not found for this product" }</code></li>
+      <li>500: <code>{ "error": "Internal server error" }</code></li>
+    </ul>
+  </div>
+
   <h2>Orders</h2>
 
   <div class="endpoint">
@@ -555,6 +950,66 @@ profilePic: &lt;file&gt;          // required image file field</pre>
     <ul>
       <li>200: <code>{ "total": number, "page": number, "limit": number, "orders": [...] }</code></li>
       <li>500: <code>{ "message": "Error fetching seller orders", "error": "..." }</code></li>
+    </ul>
+  </div>
+
+  <div class="endpoint">
+    <div><span class="method">PATCH</span> <code>/api/orders/:id/status</code> <span class="pill protected">JWT</span></div>
+    <div>Update the status of a specific order.</div>
+    <h4>Request</h4>
+    <ul>
+      <li>Headers: <code>Authorization: Bearer &lt;token&gt;</code></li>
+      <li>Params: <code>id</code> — Order ID (required)</li>
+      <li>Body (JSON):
+<pre>{
+  "status": "string (required, one of: pending, trial_active, paid, returned, cancelled, return_requested, disputed)"
+}</pre>
+    </ul>
+    <h4>Responses</h4>
+    <ul>
+      <li>200: <code>{ "message": "Order status updated successfully", "order": {...} }</code></li>
+      <li>400: <code>{ "message": "Invalid status value" }</code></li>
+      <li>401: <code>{ "message": "Unauthorized" }</code></li>
+      <li>403: <code>{ "message": "Not authorized to update this order" }</code></li>
+      <li>404: <code>{ "message": "Order not found" }</code></li>
+      <li>500: <code>{ "message": "Error updating order status", "error": "..." }</code></li>
+    </ul>
+  </div>
+
+  <div class="endpoint">
+    <div><span class="method">POST</span> <code>/api/orders/:id/cancel</code> <span class="pill protected">JWT</span></div>
+    <div>Cancel a specific order. Only the buyer who created the order or an admin can cancel it.</div>
+    <h4>Request</h4>
+    <ul>
+      <li>Headers: <code>Authorization: Bearer &lt;token&gt;</code></li>
+      <li>Params: <code>id</code> — Order ID (required)</li>
+    </ul>
+    <h4>Responses</h4>
+    <ul>
+      <li>200: <code>{ "message": "Order cancelled successfully" }</code></li>
+      <li>400: <code>{ "message": "Order cannot be cancelled" }</code></li>
+      <li>401: <code>{ "message": "Unauthorized" }</code></li>
+      <li>403: <code>{ "message": "Not authorized to cancel this order" }</code></li>
+      <li>404: <code>{ "message": "Order not found" }</code></li>
+      <li>500: <code>{ "message": "Error cancelling order", "error": "..." }</code></li>
+    </ul>
+  </div>
+
+  <div class="endpoint">
+    <div><span class="method">DELETE</span> <code>/api/orders/:id</code> <span class="pill protected">JWT (Buyer/Admin)</span></div>
+    <div>Delete a specific order. Only the buyer who created the order or an admin can delete it.</div>
+    <h4>Request</h4>
+    <ul>
+      <li>Headers: <code>Authorization: Bearer &lt;token&gt;</code></li>
+      <li>Params: <code>id</code> — Order ID (required)</li>
+    </ul>
+    <h4>Responses</h4>
+    <ul>
+      <li>200: <code>{ "message": "Order deleted successfully" }</code></li>
+      <li>401: <code>{ "message": "Unauthorized" }</code></li>
+      <li>403: <code>{ "message": "Not authorized to delete this order" }</code></li>
+      <li>404: <code>{ "message": "Order not found" }</code></li>
+      <li>500: <code>{ "message": "Error deleting order", "error": "..." }</code></li>
     </ul>
   </div>
 
@@ -670,26 +1125,6 @@ defectPhoto: &lt;file&gt; (required if action=claim_defect)</pre>
       <li>200: <code>{ "total": number, "page": number, "limit": number, "returns": [...] }</code></li>
       <li>400: <code>{ "message": "Buyer ID is required" }</code></li>
       <li>500: <code>{ "message": "Error fetching buyer returns", "error": "..." }</code></li>
-    </ul>
-  </div>
-
-  <h2>Admin</h2>
-
-  <div class="endpoint">
-    <div><span class="method">PATCH</span> <code>/api/admin/sellers/:id/approve</code> <span class="pill protected">JWT (Admin)</span></div>
-    <div>Approve a seller account. Only admins can approve sellers.</div>
-    <h4>Request</h4>
-    <ul>
-      <li>Headers: <code>Authorization: Bearer &lt;token&gt;</code></li>
-      <li>Params: <code>id</code> — Seller ID</li>
-    </ul>
-    <h4>Responses</h4>
-    <ul>
-      <li>200: <code>{ "message": "Seller approved successfully" }</code></li>
-      <li>401: <code>{ "message": "Unauthorized" }</code></li>
-      <li>403: <code>{ "message": "Forbidden" }</code></li>
-      <li>404: <code>{ "message": "Seller not found" }</code></li>
-      <li>500: <code>{ "message": "Error approving seller", "error": "..." }</code></li>
     </ul>
   </div>
 
@@ -869,28 +1304,8 @@ ownerId: "UUID (optional, admin only - for assigning to specific seller)"</pre>
     <h4>Responses</h4>
     <ul>
       <li>200: <code>{ "success": true, "data": [...], "pagination": {...} }</code></li>
+      <li>401: <code>{ "success": false, "message": "Unauthorized" }</code></li>
       <li>500: <code>{ "success": false, "message": "Error fetching rental orders", "error": "..." }</code></li>
-    </ul>
-  </div>
-
-  <div class="endpoint">
-    <div><span class="method">GET</span> <code>/api/rental-orders/my-orders</code> <span class="pill protected">JWT</span></div>
-    <div>Get current user's rental orders with pagination and filtering.</div>
-    <h4>Request</h4>
-    <ul>
-      <li>Headers: <code>Authorization: Bearer &lt;token&gt;</code></li>
-      <li>Query Parameters (optional):
-        <ul>
-          <li><code>page</code> — Page number (default: 1)</li>
-          <li><code>limit</code> — Items per page (default: 10, max: 100)</li>
-          <li><code>status</code> — Filter by status</li>
-        </ul>
-      </li>
-    </ul>
-    <h4>Responses</h4>
-    <ul>
-      <li>200: <code>{ "success": true, "data": [...], "pagination": {...} }</code></li>
-      <li>500: <code>{ "success": false, "message": "Error fetching user rental orders", "error": "..." }</code></li>
     </ul>
   </div>
 
@@ -1059,10 +1474,54 @@ ownerId: "UUID (optional, admin only - for assigning to specific seller)"</pre>
     </ul>
   </div>
 
+  <h2>Admin</h2>
+
+  <div class="endpoint">
+    <div><span class="method">PATCH</span> <code>/api/admin/sellers/:id/approve</code> <span class="pill protected">JWT (Admin)</span></div>
+    <div>Approve a seller account. Only admins can approve sellers.</div>
+    <h4>Request</h4>
+    <ul>
+      <li>Headers: <code>Authorization: Bearer &lt;token&gt;</code></li>
+      <li>Params: <code>id</code> — Seller ID</li>
+    </ul>
+    <h4>Responses</h4>
+    <ul>
+      <li>200: <code>{ "message": "Seller approved successfully" }</code></li>
+      <li>401: <code>{ "message": "Unauthorized" }</code></li>
+      <li>403: <code>{ "message": "Forbidden" }</code></li>
+      <li>404: <code>{ "message": "Seller not found" }</code></li>
+      <li>500: <code>{ "message": "Error approving seller", "error": "..." }</code></li>
+    </ul>
+  </div>
+
   <h2>Security</h2>
+
+  <div class="endpoint">
+    <div><span class="method">GET</span> <code>/health</code> <span class="pill auth">Public</span></div>
+    <div>Health check endpoint for monitoring. Returns the operational status of the API.</div>
+    <h4>Request</h4>
+    <ul>
+      <li>No authentication required</li>
+    </ul>
+    <h4>Responses</h4>
+    <ul>
+      <li>200: <code>{ "status": "ok", "timestamp": "ISO date", "uptime": number }</code></li>
+    </ul>
+  </div>
+
   <ul>
     <li><strong>JWT Secret</strong>: <code>JWT_SECRET</code> env must be configured.</li>
     <li><strong>Auth header</strong>: <code>Authorization: Bearer &lt;token&gt;</code> for protected endpoints.</li>
   </ul>
+    </div>
+  </div>
+
+  <div class="footer">
+    <p>🚀 <strong>Rentry API</strong> - Powered by modern web technologies</p>
+    <p>Deployed at <a href="https://rentry.servequake.com" target="_blank">https://rentry.servequake.com</a></p>
+    <p style="margin-top: 1rem; font-size: 0.875rem; opacity: 0.8;">
+      © 2024 Rentry Platform. Built with ❤️ for e-commerce innovation.
+    </p>
+  </div>
 </body>
 </html>
