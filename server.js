@@ -18,8 +18,12 @@ import returnRoutes from "./routes/returnRoutes.js";
 dotenv.config();
 const app = express();
 app.use(express.json());
-app.use(cors({ origin: "https://ecomm-puce-five.vercel.app" }));
-
+app.use(cors({
+  origin: [
+    "https://ecomm-puce-five.vercel.app",
+    "https://rentry.servequake.com"
+  ]
+}));
 // routes
 app.use("/api/buyers", buyerRoutes);
 app.use("/api/sellers", sellerRoutes);
