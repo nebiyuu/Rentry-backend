@@ -1,5 +1,6 @@
 import express from "express";
 import dotenv from "dotenv";
+import cors from "cors";
 import sequelize from "./model/index.js";
 import buyerRoutes from "./routes/buyerRoutes.js";
 import sellerRoutes from "./routes/sellerRoutes.js";
@@ -17,6 +18,7 @@ import returnRoutes from "./routes/returnRoutes.js";
 dotenv.config();
 const app = express();
 app.use(express.json());
+app.use(cors({ origin: "https://ecomm-puce-five.vercel.app" }));
 
 // routes
 app.use("/api/buyers", buyerRoutes);

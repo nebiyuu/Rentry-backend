@@ -1,3 +1,11 @@
 {
-  "outputDirectory": "public"
+  "outputDirectory": "public",
+  "headers": [
+    {
+      "source": "/(.*\\.yaml)",
+      "headers": [
+        { "key": "Content-Type", "value": "text/yaml" }
+      ]
+    }
+  ]
 }

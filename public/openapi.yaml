@@ -1,0 +1,2873 @@
+openapi: "3.0.3"
+info:
+  title: Rentry API
+  version: "1.0.0"
+  description: |
+    Complete API documentation for the Rentry e-commerce platform.
+    Manage products, users, orders, rentals, and payments with our comprehensive REST API.
+servers:
+  - url: https://rentry.servequake.com
+    description: Production EC2 backend
+
+tags:
+  - name: Health
+    description: Health check endpoint
+  - name: Authentication & Users
+    description: User login, email verification, OTP, and account deletion
+  - name: Buyers
+    description: Buyer registration and CRUD operations
+  - name: Sellers
+    description: Seller registration, listing, and management
+  - name: Products
+    description: Product CRUD with optional trial policies
+  - name: Trial Policies
+    description: Trial policy management for products
+  - name: Orders
+    description: Order creation, listing, and status management
+  - name: Returns
+    description: Return initiation, QR scanning, and return queries
+  - name: Rental Products
+    description: Rentable product CRUD and listing
+  - name: Rental Orders
+    description: Rental order creation and management
+  - name: Payments
+    description: Payment initiation, webhook, and status checks
+  - name: Admin
+    description: Admin-only endpoints
+
+security:
+  - BearerAuth: []
+
+paths:
+  # ─── Health ─────────────────────────────────────────────────
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      description: Returns the operational status of the API.
+      security: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  timestamp:
+                    type: string
+                    format: date-time
+                  uptime:
+                    type: number
+
+  # ─── Authentication & Users ────────────────────────────────
+  /api/users/login:
+    post:
+      tags: [Authentication & Users]
+      summary: Universal login
+      description: Login for buyer, seller, and admin. Role resolved from User.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username:
+                  type: string
+                  description: username or email
+                password:
+                  type: string
+                  description: user password
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  token:
+                    type: string
+                  user:
+                    $ref: "#/components/schemas/User"
+        "400":
+          $ref: "#/components/responses/Error"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          description: Email not verified or seller not approved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+
+  /api/users/resend-otp:
+    post:
+      tags: [Authentication & Users]
+      summary: Resend verification OTP
+      description: Resends a new verification code to buyer or seller email.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        "200":
+          description: OTP resent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: OTP resent to buyer/seller email
+        "400":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+
+  /api/users/verify-email:
+    post:
+      tags: [Authentication & Users]
+      summary: Verify email with OTP
+      description: Verifies the code, marks emailVerified, ensures a User exists, and returns JWT.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, otp]
+              properties:
+                email:
+                  type: string
+                  format: email
+                otp:
+                  type: string
+                  description: 6-digit verification code
+      responses:
+        "200":
+          description: Email verified or already verified
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  token:
+                    type: string
+                  user:
+                    $ref: "#/components/schemas/User"
+        "400":
+          description: Validation errors (email/otp required, no OTP pending, OTP expired, invalid OTP)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Account not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          description: Too many attempts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Too many attempts. Request a new OTP
+
+  /api/users/{id}:
+    delete:
+      tags: [Authentication & Users]
+      summary: Delete user
+      description: Deletes the user and related Seller/Buyer records. Only the same user or an admin can perform this.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User ID
+      responses:
+        "200":
+          description: User deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: User and related records deleted
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  # ─── Buyers ────────────────────────────────────────────────
+  /api/buyers/register:
+    post:
+      tags: [Buyers]
+      summary: Register a buyer
+      description: Registers a buyer with a profile picture and sends OTP.
+      security: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [firstName, lastName, username, email, password, profilePic]
+              properties:
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+                username:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                phoneNumber:
+                  type: string
+                password:
+                  type: string
+                profilePic:
+                  type: string
+                  format: binary
+                  description: Required image file
+      responses:
+        "201":
+          description: Buyer registered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  buyer:
+                    $ref: "#/components/schemas/Buyer"
+        "400":
+          $ref: "#/components/responses/Error"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/buyers:
+    get:
+      tags: [Buyers]
+      summary: List buyers
+      responses:
+        "200":
+          description: List of buyers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Buyer"
+        "401":
+          $ref: "#/components/responses/Error"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/buyers/{id}:
+    get:
+      tags: [Buyers]
+      summary: Get buyer by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Buyer ID
+      responses:
+        "200":
+          description: Buyer found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Buyer"
+        "401":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+        "500":
+          $ref: "#/components/responses/ServerError"
+    patch:
+      tags: [Buyers]
+      summary: Update buyer (self/admin)
+      description: Update buyer fields. Only self or admin.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Buyer ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                phoneNumber:
+                  type: string
+      responses:
+        "200":
+          description: Buyer updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Buyer"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+        "500":
+          $ref: "#/components/responses/ServerError"
+    delete:
+      tags: [Buyers]
+      summary: Delete buyer (self/admin)
+      description: Delete buyer. Only self or admin.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Buyer ID
+      responses:
+        "200":
+          description: Buyer deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  # ─── Sellers ───────────────────────────────────────────────
+  /api/sellers/register:
+    post:
+      tags: [Sellers]
+      summary: Register a seller
+      description: Registers a seller with license and profile picture uploads, then sends OTP. Login requires emailVerified=true and approved=true.
+      security: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [firstName, lastName, username, email, password, license, profilePic]
+              properties:
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+                username:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                address:
+                  type: string
+                phoneNumber:
+                  type: string
+                storeName:
+                  type: string
+                license:
+                  type: string
+                  format: binary
+                  description: Required image file
+                profilePic:
+                  type: string
+                  format: binary
+                  description: Required image file
+      responses:
+        "201":
+          description: Seller registered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  seller:
+                    $ref: "#/components/schemas/Seller"
+        "400":
+          $ref: "#/components/responses/Error"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/sellers:
+    get:
+      tags: [Sellers]
+      summary: Get all sellers (admin only)
+      description: Returns all sellers. Admin only.
+      responses:
+        "200":
+          description: Sellers retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  sellers:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Seller"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/sellers/{id}:
+    get:
+      tags: [Sellers]
+      summary: Get seller by ID
+      description: Get seller by ID. Authenticated users only.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Seller ID
+      responses:
+        "200":
+          description: Seller retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  seller:
+                    $ref: "#/components/schemas/Seller"
+        "401":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+        "500":
+          $ref: "#/components/responses/ServerError"
+    put:
+      tags: [Sellers]
+      summary: Update seller
+      description: Update seller information. Authenticated users only.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Seller ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                address:
+                  type: string
+                license:
+                  type: string
+                approved:
+                  type: boolean
+      responses:
+        "200":
+          description: Seller updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  seller:
+                    $ref: "#/components/schemas/Seller"
+        "401":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+        "500":
+          $ref: "#/components/responses/ServerError"
+    patch:
+      tags: [Sellers]
+      summary: Update seller (partial)
+      description: Partially update seller information. Authenticated users only.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Seller ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                address:
+                  type: string
+                license:
+                  type: string
+                approved:
+                  type: boolean
+      responses:
+        "200":
+          description: Seller updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  seller:
+                    $ref: "#/components/schemas/Seller"
+        "401":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  # ─── Products ──────────────────────────────────────────────
+  /api/products:
+    get:
+      tags: [Products]
+      summary: List all products
+      description: Lists all products. Supports filtering by category. Admins can see soft-deleted products as well.
+      security: []
+      parameters:
+        - name: category
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by category (e.g. "Mobile Phones & Tablets")
+      responses:
+        "200":
+          description: Products retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  count:
+                    type: integer
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Product"
+        "500":
+          description: Error retrieving products
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  error:
+                    type: string
+    post:
+      tags: [Products]
+      summary: Create a product
+      description: Creates a new product. Only authenticated sellers or admins can create products.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, description, category, price]
+              properties:
+                name:
+                  type: string
+                  minLength: 3
+                  maxLength: 100
+                description:
+                  type: string
+                  minLength: 10
+                category:
+                  type: string
+                condition:
+                  type: string
+                  enum: [new, used, refurbished]
+                  default: new
+                price:
+                  type: number
+                  minimum: 0
+                  exclusiveMinimum: true
+                images:
+                  type: array
+                  items:
+                    type: string
+                  description: Array of image URLs
+                ownerId:
+                  type: number
+                  description: Admin only - assign product to specific seller
+                trialPolicy:
+                  $ref: "#/components/schemas/TrialPolicyInput"
+      responses:
+        "201":
+          description: Product created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: "#/components/schemas/Product"
+        "400":
+          description: Validation error or image validation failure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationError"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Only sellers and admins can create products
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Error creating product
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/products/{id}:
+    get:
+      tags: [Products]
+      summary: Get product by ID
+      description: Get a specific product by ID. Admins can retrieve soft-deleted products.
+      security: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Product ID
+      responses:
+        "200":
+          description: Product found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: "#/components/schemas/Product"
+        "404":
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Error retrieving product
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    patch:
+      tags: [Products]
+      summary: Update product
+      description: Partially updates an existing product. Only the product owner or admin can update it.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Product ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 3
+                  maxLength: 100
+                description:
+                  type: string
+                  minLength: 10
+                category:
+                  type: string
+                condition:
+                  type: string
+                  enum: [new, used, refurbished]
+                price:
+                  type: number
+                  minimum: 0
+                  exclusiveMinimum: true
+                images:
+                  type: array
+                  items:
+                    type: string
+                ownerId:
+                  type: number
+                  description: Admin only - transfer product ownership
+                trialPolicy:
+                  $ref: "#/components/schemas/TrialPolicyInput"
+      responses:
+        "200":
+          description: Product updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      product:
+                        $ref: "#/components/schemas/Product"
+                      trialPolicy:
+                        $ref: "#/components/schemas/TrialPolicy"
+        "400":
+          description: Validation error or image validation failure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationError"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          description: Not authorized to update this product
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          $ref: "#/components/responses/ServerError"
+    delete:
+      tags: [Products]
+      summary: Soft delete product
+      description: Soft deletes a product. Only the product owner or admin can delete it.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Product ID
+      responses:
+        "200":
+          description: Product deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                    example: Product deleted successfully
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          description: Not authorized to delete this product
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  # ─── Trial Policies ────────────────────────────────────────
+  /api/products/{id}/trial-policy:
+    post:
+      tags: [Trial Policies]
+      summary: Create trial policy
+      description: Creates a trial policy for a product. Only authenticated sellers or admins can create trial policies.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Product ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [trial_days, return_window_hours]
+              properties:
+                trial_days:
+                  type: integer
+                  minimum: 1
+                  maximum: 365
+                return_window_hours:
+                  type: integer
+                  minimum: 1
+                  maximum: 8760
+      responses:
+        "201":
+          description: Trial policy created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  trialPolicy:
+                    $ref: "#/components/schemas/TrialPolicy"
+        "400":
+          description: Validation error, product not found, or trial policy already exists
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    properties:
+                      errors:
+                        type: array
+                        items:
+                          type: object
+                  - type: object
+                    properties:
+                      error:
+                        type: string
+        "401":
+          $ref: "#/components/responses/Error"
+        "500":
+          $ref: "#/components/responses/ServerError"
+    patch:
+      tags: [Trial Policies]
+      summary: Update trial policy
+      description: Updates an existing trial policy. Only the product owner or admin can update it. All fields are optional.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Product ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                trial_days:
+                  type: integer
+                  minimum: 1
+                  maximum: 365
+                return_window_hours:
+                  type: integer
+                  minimum: 1
+                  maximum: 8760
+      responses:
+        "200":
+          description: Trial policy updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  trialPolicy:
+                    $ref: "#/components/schemas/TrialPolicy"
+        "400":
+          description: Validation errors
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: object
+        "401":
+          $ref: "#/components/responses/Error"
+        "404":
+          description: Trial policy not found for this product
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        "500":
+          $ref: "#/components/responses/ServerError"
+    delete:
+      tags: [Trial Policies]
+      summary: Disable trial policy
+      description: Soft deletes/disables a trial policy. Only the product owner or admin can delete it.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Product ID
+      responses:
+        "200":
+          description: Trial policy disabled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Trial policy disabled successfully
+        "401":
+          $ref: "#/components/responses/Error"
+        "404":
+          description: Trial policy not found for this product
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        "500":
+          $ref: "#/components/responses/ServerError"
+    get:
+      tags: [Trial Policies]
+      summary: Get trial policy
+      description: Gets the trial policy for a specific product.
+      security: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Product ID
+      responses:
+        "200":
+          description: Trial policy retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  trialPolicy:
+                    $ref: "#/components/schemas/TrialPolicy"
+        "404":
+          description: Trial policy not found for this product
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  # ─── Orders ────────────────────────────────────────────────
+  /api/orders:
+    post:
+      tags: [Orders]
+      summary: Create an order
+      description: Creates a new order. Only authenticated buyers can create orders.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [productId]
+              properties:
+                productId:
+                  type: string
+                  format: uuid
+                trialStartedAt:
+                  type: string
+                  format: date-time
+                trialEndsAt:
+                  type: string
+                  format: date-time
+      responses:
+        "201":
+          description: Order created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Order created
+                  orderId:
+                    type: string
+                    format: uuid
+                  status:
+                    type: string
+                    enum: [pending, trial_active]
+        "400":
+          description: productId required, product not available, or buyer not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          $ref: "#/components/responses/ServerError"
+    get:
+      tags: [Orders]
+      summary: List orders
+      description: Lists all orders with optional filtering and pagination.
+      security: []
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [pending, trial_active, paid, returned, cancelled]
+        - name: buyerId
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+      responses:
+        "200":
+          description: Orders retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                  page:
+                    type: integer
+                  limit:
+                    type: integer
+                  orders:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Order"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/orders/buyer/{buyerId}:
+    get:
+      tags: [Orders]
+      summary: Get buyer orders
+      description: Get all orders for a specific buyer with pagination. Uses authenticated buyer's username.
+      parameters:
+        - name: buyerId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Buyer ID
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 10
+            maximum: 100
+      responses:
+        "200":
+          description: Buyer orders retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                  page:
+                    type: integer
+                  limit:
+                    type: integer
+                  orders:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Order"
+        "400":
+          description: Buyer not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/orders/seller/{sellerId}:
+    get:
+      tags: [Orders]
+      summary: Get seller orders
+      description: Get all orders for products belonging to a specific seller.
+      parameters:
+        - name: sellerId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Seller/User ID
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [pending, trial_active, paid, returned, cancelled, return_requested, disputed]
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 10
+            maximum: 100
+      responses:
+        "200":
+          description: Seller orders retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                  page:
+                    type: integer
+                  limit:
+                    type: integer
+                  orders:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Order"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/orders/{id}:
+    get:
+      tags: [Orders]
+      summary: Get order by ID
+      description: Get a specific order by ID with product and buyer details.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Order ID
+      responses:
+        "200":
+          description: Order found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  order:
+                    $ref: "#/components/schemas/Order"
+        "404":
+          description: Order not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          $ref: "#/components/responses/ServerError"
+    delete:
+      tags: [Orders]
+      summary: Delete order (Buyer/Admin)
+      description: Delete a specific order. Only the buyer who created the order or an admin can delete it.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Order ID
+      responses:
+        "200":
+          description: Order deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Order deleted successfully
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          description: Not authorized to delete this order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Order not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/orders/{id}/status:
+    patch:
+      tags: [Orders]
+      summary: Update order status
+      description: Update the status of a specific order.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Order ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [pending, trial_active, paid, returned, cancelled, return_requested, disputed]
+      responses:
+        "200":
+          description: Status updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  order:
+                    $ref: "#/components/schemas/Order"
+        "400":
+          description: Invalid status value
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          description: Not authorized to update this order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Order not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/orders/{id}/cancel:
+    post:
+      tags: [Orders]
+      summary: Cancel order
+      description: Cancel a specific order. Only the buyer who created the order or an admin can cancel it.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Order ID
+      responses:
+        "200":
+          description: Order cancelled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Order cancelled successfully
+        "400":
+          description: Order cannot be cancelled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          description: Not authorized to cancel this order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Order not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  # ─── Returns ───────────────────────────────────────────────
+  /api/returns:
+    post:
+      tags: [Returns]
+      summary: Initiate a return
+      description: Initiate a return for an order. Only allowed during active trial period.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [orderId]
+              properties:
+                orderId:
+                  type: string
+                  format: uuid
+                hasDefect:
+                  type: boolean
+                defectDescription:
+                  type: string
+                  description: Required if hasDefect is true
+                defectPhotoUrl:
+                  type: string
+                  description: Required if hasDefect is true
+      responses:
+        "201":
+          description: Return initiated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  return:
+                    $ref: "#/components/schemas/Return"
+        "400":
+          description: Validation errors
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Not authorized to return this order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Order not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/returns/scan:
+    post:
+      tags: [Returns]
+      summary: Scan return QR code
+      description: Seller scans QR code to accept return or claim defect. Supports file upload for defect photos.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [returnToken, action]
+              properties:
+                returnToken:
+                  type: string
+                action:
+                  type: string
+                  enum: [confirm, claim_defect]
+                defectDescription:
+                  type: string
+                  description: Required if action=claim_defect
+                defectPhoto:
+                  type: string
+                  format: binary
+                  description: Required if action=claim_defect
+      responses:
+        "200":
+          description: Return processed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    enum:
+                      - Return confirmed - Money released to buyer
+                      - Defect claim submitted - Dispute created for admin review
+        "400":
+          description: Validation errors
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Unauthorized - You are not the seller
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Invalid QR Code or Return not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/returns/order/{orderId}:
+    get:
+      tags: [Returns]
+      summary: Get return by order
+      description: Get return details for a specific order. Only accessible by the order buyer or admins.
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Order ID
+      responses:
+        "200":
+          description: Return found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  return:
+                    $ref: "#/components/schemas/ReturnDetail"
+        "400":
+          description: Order ID is required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Not authorized to view this return
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Return not found for this order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/returns/seller/{sellerId}:
+    get:
+      tags: [Returns]
+      summary: Get seller returns
+      description: Get all returns for products belonging to a specific seller with pagination and filtering.
+      parameters:
+        - name: sellerId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Seller ID
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [pending, confirmed, defect_claimed, expired]
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 10
+            maximum: 100
+      responses:
+        "200":
+          description: Seller returns retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                  page:
+                    type: integer
+                  limit:
+                    type: integer
+                  returns:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Return"
+        "400":
+          description: Seller ID is required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/returns/buyer/{buyerId}:
+    get:
+      tags: [Returns]
+      summary: Get buyer returns
+      description: Get all returns for a specific buyer with pagination and filtering.
+      parameters:
+        - name: buyerId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Buyer ID
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [pending, confirmed, defect_claimed, expired]
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 10
+            maximum: 100
+      responses:
+        "200":
+          description: Buyer returns retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                  page:
+                    type: integer
+                  limit:
+                    type: integer
+                  returns:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Return"
+        "400":
+          description: Buyer ID is required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  # ─── Rental Products ───────────────────────────────────────
+  /api/rentals:
+    get:
+      tags: [Rental Products]
+      summary: List rental products
+      description: Lists all available rental products with pagination.
+      security: []
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 10
+            maximum: 100
+      responses:
+        "200":
+          description: Rental products retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Rentable"
+                  pagination:
+                    type: object
+        "500":
+          $ref: "#/components/responses/ServerError"
+    post:
+      tags: [Rental Products]
+      summary: Create rental product
+      description: Creates a new product and rental listing in a single transaction. Supports image uploads.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [name, description, category, price, dailyRate]
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                category:
+                  type: string
+                condition:
+                  type: string
+                  enum: [new, used, refurbished]
+                  default: new
+                price:
+                  type: number
+                  minimum: 0
+                  exclusiveMinimum: true
+                dailyRate:
+                  type: number
+                  minimum: 0
+                  exclusiveMinimum: true
+                penaltyRate:
+                  type: number
+                  default: 0.00
+                images:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                  description: Up to 10 image files
+                ownerId:
+                  type: string
+                  format: uuid
+                  description: Admin only - assign to specific seller
+      responses:
+        "201":
+          description: Rental product created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      product:
+                        $ref: "#/components/schemas/Product"
+                      rentable:
+                        $ref: "#/components/schemas/Rentable"
+        "400":
+          description: Validation errors
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          description: Only sellers and admins can create products
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/rentals/renter/{renterId}:
+    get:
+      tags: [Rental Products]
+      summary: Get renter's rental products
+      description: Get all rental products listed by a specific seller (renter). Users can only view their own listings unless admin.
+      parameters:
+        - name: renterId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Seller/User ID
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 10
+            maximum: 100
+      responses:
+        "200":
+          description: Renter rentals retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  rentables:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Rentable"
+                  pagination:
+                    type: object
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          description: You can only view your own rentable listings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/rentals/{id}:
+    get:
+      tags: [Rental Products]
+      summary: Get rental product by ID
+      description: Get a specific rental product by ID.
+      security: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Product ID
+      responses:
+        "200":
+          description: Rental product found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: "#/components/schemas/Rentable"
+        "404":
+          description: Rentable not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          $ref: "#/components/responses/ServerError"
+    patch:
+      tags: [Rental Products]
+      summary: Update rental product
+      description: Updates both product and rental details. Only the product owner or admin can update.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Product ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                category:
+                  type: string
+                condition:
+                  type: string
+                  enum: [new, used, refurbished]
+                price:
+                  type: number
+                  minimum: 0
+                  exclusiveMinimum: true
+                dailyRate:
+                  type: number
+                  minimum: 0
+                  exclusiveMinimum: true
+                penaltyRate:
+                  type: number
+                available:
+                  type: boolean
+      responses:
+        "200":
+          description: Rental updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  product:
+                    $ref: "#/components/schemas/Product"
+        "400":
+          description: Validation errors
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          description: Not authorized to update this rental
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Product not found or not rentable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          $ref: "#/components/responses/ServerError"
+    delete:
+      tags: [Rental Products]
+      summary: Delete rental product
+      description: Deletes a rental product. Only the product owner or admin can delete.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Product ID
+      responses:
+        "200":
+          description: Rental deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                    example: Rentable product deleted successfully
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          description: Not authorized to delete this rental
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Rentable product not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  # ─── Rental Orders ─────────────────────────────────────────
+  /api/rental-orders:
+    post:
+      tags: [Rental Orders]
+      summary: Create rental order
+      description: Creates a new rental order booking. Automatically calculates costs and checks availability.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [rentableId, startDate, endDate]
+              properties:
+                rentableId:
+                  type: string
+                  format: uuid
+                startDate:
+                  type: string
+                  format: date-time
+                  description: Cannot be in the past
+                endDate:
+                  type: string
+                  format: date-time
+                  description: Must be after start date
+                notes:
+                  type: string
+                  maxLength: 1000
+      responses:
+        "201":
+          description: Rental order created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: "#/components/schemas/RentalOrder"
+        "400":
+          description: Product not found/available, dates unavailable, or own product
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/Error"
+        "500":
+          $ref: "#/components/responses/ServerError"
+    get:
+      tags: [Rental Orders]
+      summary: List rental orders
+      description: Lists all rental orders with filtering and pagination. Admins can see all, users see their own.
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 10
+            maximum: 100
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [pending, active, completed, cancelled, overdue]
+        - name: renterId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Admin only - filter by renter ID
+        - name: startDate
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Rental orders retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/RentalOrder"
+                  pagination:
+                    type: object
+        "401":
+          $ref: "#/components/responses/Error"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/rental-orders/{id}:
+    get:
+      tags: [Rental Orders]
+      summary: Get rental order by ID
+      description: Get a specific rental order by ID with full details.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Rental Order ID
+      responses:
+        "200":
+          description: Rental order found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: "#/components/schemas/RentalOrder"
+        "403":
+          description: You do not have permission to view this rental order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Rental order not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          $ref: "#/components/responses/ServerError"
+    patch:
+      tags: [Rental Orders]
+      summary: Update rental order
+      description: Updates a rental order. Can modify dates, status, or notes. Recalculates costs if dates change.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Rental Order ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                startDate:
+                  type: string
+                  format: date-time
+                endDate:
+                  type: string
+                  format: date-time
+                status:
+                  type: string
+                  enum: [pending, active, completed, cancelled, overdue]
+                notes:
+                  type: string
+                  maxLength: 1000
+      responses:
+        "200":
+          description: Rental order updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: "#/components/schemas/RentalOrder"
+        "400":
+          description: Product is not available for the selected dates
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: You do not have permission to update this rental order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Rental order not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          $ref: "#/components/responses/ServerError"
+    delete:
+      tags: [Rental Orders]
+      summary: Delete rental order
+      description: Deletes a rental order. Only allowed for pending orders.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Rental Order ID
+      responses:
+        "200":
+          description: Rental order deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                    example: Rental order deleted successfully
+        "400":
+          description: Cannot delete rental order that is not pending
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: You do not have permission to delete this rental order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Rental order not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  # ─── Payments ──────────────────────────────────────────────
+  /api/payments/initiate:
+    post:
+      tags: [Payments]
+      summary: Initiate payment
+      description: Initiates payment with Chapa for a specific order. Creates payment record and returns checkout URL.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [orderId]
+              properties:
+                orderId:
+                  type: string
+                  format: uuid
+      responses:
+        "200":
+          description: Payment initiated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  checkoutUrl:
+                    type: string
+                  hasTrial:
+                    type: boolean
+        "400":
+          description: orderId required or order not payable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Order not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/payments/verify:
+    post:
+      tags: [Payments]
+      summary: Verify payment (webhook)
+      description: Chapa webhook endpoint for payment verification. Also handles browser redirects from payment completion.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                trx_ref:
+                  type: string
+                  description: Chapa transaction reference (required)
+                ref_id:
+                  type: string
+                  description: Chapa reference ID
+                status:
+                  type: string
+                  description: Payment status from Chapa
+      parameters:
+        - name: trx_ref
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Alternative - transaction reference as query param
+        - name: tx_ref
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Alternative transaction reference field
+      responses:
+        "302":
+          description: Redirect to success/failure page
+          headers:
+            Location:
+              schema:
+                type: string
+                example: http://localhost:3000/payment-success
+        "400":
+          description: Transaction reference required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Payment not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/payments/verifyy:
+    get:
+      tags: [Payments]
+      summary: Payment redirect handler
+      description: Browser redirect endpoint after payment completion. Simply redirects to success page.
+      security: []
+      responses:
+        "302":
+          description: Redirect to success page
+          headers:
+            Location:
+              schema:
+                type: string
+                example: http://localhost:3000/payment-success
+
+  /api/payments/status:
+    get:
+      tags: [Payments]
+      summary: Check payment status
+      description: Checks the current status of a payment using transaction reference.
+      security: []
+      parameters:
+        - name: txRef
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Chapa transaction reference
+      responses:
+        "200":
+          description: Payment status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  payment:
+                    $ref: "#/components/schemas/PaymentStatus"
+                  order:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      status:
+                        type: string
+                        enum: [pending, trial_active, paid, returned, cancelled]
+                      trialEndsAt:
+                        type: string
+                        format: date-time
+                        nullable: true
+                      hasTrial:
+                        type: boolean
+        "400":
+          description: Transaction reference (txRef) is required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Payment or order not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  # ─── Admin ─────────────────────────────────────────────────
+  /api/admin/sellers/{id}/approve:
+    patch:
+      tags: [Admin]
+      summary: Approve a seller
+      description: Approve a seller account. Only admins can approve sellers.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Seller ID
+      responses:
+        "200":
+          description: Seller approved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Seller approved successfully
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+        "404":
+          description: Seller not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+# ─── Components ───────────────────────────────────────────
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT token obtained from login or email verification.
+        Include as: `Authorization: Bearer <token>`
+
+  responses:
+    Error:
+      description: Error response
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    ServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+        error:
+          type: string
+
+    ValidationError:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+        errors:
+          type: array
+          items:
+            type: object
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [buyer, seller, admin]
+
+    Buyer:
+      type: object
+      properties:
+        id:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+        phoneNumber:
+          type: string
+        emailVerified:
+          type: boolean
+        profilePic:
+          type: string
+
+    Seller:
+      type: object
+      properties:
+        id:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        phoneNumber:
+          type: string
+        storeName:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+        address:
+          type: string
+        approved:
+          type: boolean
+        emailVerified:
+          type: boolean
+        profilePic:
+          type: string
+        license:
+          type: string
+
+    Product:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        condition:
+          type: string
+          enum: [new, used, refurbished]
+        price:
+          type: number
+        images:
+          type: array
+          items:
+            type: string
+        ownerId:
+          type: string
+        deleted:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    TrialPolicy:
+      type: object
+      properties:
+        id:
+          type: string
+        productId:
+          type: string
+        trialDays:
+          type: integer
+        penaltyType:
+          type: string
+        penaltyValue:
+          type: number
+        returnWindowHours:
+          type: integer
+        active:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    TrialPolicyInput:
+      type: object
+      properties:
+        trialDays:
+          type: integer
+          minimum: 1
+        penaltyType:
+          type: string
+          example: flat
+        penaltyValue:
+          type: number
+          minimum: 0
+        returnWindowHours:
+          type: integer
+          minimum: 1
+
+    Order:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        productId:
+          type: string
+          format: uuid
+        buyerId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [pending, trial_active, paid, returned, cancelled, return_requested, disputed]
+        trialStartedAt:
+          type: string
+          format: date-time
+        trialEndsAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Return:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        orderId:
+          type: string
+          format: uuid
+        returnToken:
+          type: string
+        status:
+          type: string
+          enum: [pending, confirmed, defect_claimed, expired]
+        requestedAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+        hasDefect:
+          type: boolean
+        defectDescription:
+          type: string
+        defectPhotoUrl:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ReturnDetail:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        orderId:
+          type: string
+          format: uuid
+        returnToken:
+          type: string
+        status:
+          type: string
+          enum: [pending, confirmed, defect_claimed, expired]
+        requestedAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+        scannedAt:
+          type: string
+          format: date-time
+        defectPhotoUrl:
+          type: string
+        defectDescription:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        order:
+          $ref: "#/components/schemas/Order"
+
+    Rentable:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        productId:
+          type: string
+          format: uuid
+        dailyRate:
+          type: number
+        penaltyRate:
+          type: number
+        available:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    RentalOrder:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        rentableId:
+          type: string
+          format: uuid
+        renterId:
+          type: string
+          format: uuid
+        startDate:
+          type: string
+          format: date-time
+        endDate:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [pending, active, completed, cancelled, overdue]
+        totalCost:
+          type: number
+        depositAmount:
+          type: number
+        notes:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PaymentStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [pending, released_to_seller, held_in_escrow, failed]
+        amount:
+          type: number
+        currency:
+          type: string
+        paidAt:
+          type: string
+          format: date-time
+          nullable: true
+        chapaTxRef:
+          type: string
